@@ -15,43 +15,11 @@ const subscriberRouter = require("./router/subscriberRouter");
 app.use(express.json());
 app.use(cors());
 
-// MongoDB Connection
-const MONGO_URI = process.env.MONGO_URI?.trim();
-let isConnected = false;
-
-async function connectToMongoDB() {
-    if (isConnected) return;
-
-    if (!MONGO_URI) {
-        throw new Error("Missing MONGO_URI environment variable");
-    }
-
-    try {
-        await mongoose.connect(MONGO_URI);
-
-        isConnected = true;
-        console.log("✅ MongoDB Connected Successfully");
-    } catch (error) {
-        console.error("❌ MongoDB Connection Error:", error.message);
-        throw error;
-    }
-}
-
-// Connect before every request (only first request connects)
-app.use(async (req, res, next) => {
-    try {
-        if (!isConnected) {
-            await connectToMongoDB();
-        }
-        next();
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: "Database connection failed",
-            error: error.message,
-        });
-    }
-});
+// Connect MongoDB
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.log("MongoDB Error:", err));
 
 // Routes
 app.use("/api", blogRoutes);
@@ -59,4 +27,18 @@ app.use("/api-govt", govtRouter);
 app.use("/api", contactRoutes);
 app.use("/api", subscriberRouter);
 
+// Home Route
+app.get("/", (req, res) => {
+  res.send("Backend is Running...");
+});
+
 module.exports = app;
+
+// Run locally only
+// if (process.env.NODE_ENV !== "production") {
+//   const PORT = process.env.PORT || 5000;
+
+//   app.listen(PORT, () => {
+//     console.log(`Server Running on Port ${PORT}`);
+//   });
+// }
