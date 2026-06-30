@@ -26,30 +26,31 @@ async function connectToMongoDB() {
         throw new Error("Missing MONGO_URI environment variable");
     }
 
-    await mongoose.connect(MONGO_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    });
+    try {
+        await mongoose.connect(MONGO_URI);
 
-    isConnected = true;
-    console.log("✅ MongoDB Connected Successfully");
+        isConnected = true;
+        console.log("✅ MongoDB Connected Successfully");
+    } catch (error) {
+        console.error("❌ MongoDB Connection Error:", error.message);
+        throw error;
+    }
 }
 
-// Connect before every request (only first request actually connects)
+// Connect before every request (only first request connects)
 app.use(async (req, res, next) => {
-    if (!isConnected) {
-        try {
+    try {
+        if (!isConnected) {
             await connectToMongoDB();
-        } catch (error) {
-            console.error("❌ MongoDB Connection Error:", error);
-            return res.status(500).json({
-                success: false,
-                message: "Database connection failed",
-                error: error.message,
-            });
         }
+        next();
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Database connection failed",
+            error: error.message,
+        });
     }
-    next();
 });
 
 // Routes
